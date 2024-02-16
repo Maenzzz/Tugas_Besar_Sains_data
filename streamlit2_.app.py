@@ -3,12 +3,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Function to load data from URL
-def load_data(url):
-    try:
-        return pd.read_csv(url)
-    except Exception as e:
-        st.error(f"Error loading data from {url}: {str(e)}")
+# Read the data
+products_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/products_dataset.csv"
+customers_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/customers_dataset.csv"
+order_items_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/order_items_dataset.csv"
+order_payments_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/order_payments_dataset.csv"
+order_reviews_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/order_reviews_dataset.csv"
+orders_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/orders_dataset.csv"
+product_category_translation_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/product_category_name_translation.csv"
+sellers_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/sellers_dataset.csv"
 
 # Define Streamlit app title
 st.title('E-Commerce Data Analysis')
@@ -18,6 +21,11 @@ analysis_choice = st.sidebar.selectbox(
     "Select Analysis",
     ["Payment Analysis", "Order Delivery Analysis", "Product Analysis"]
 )
+
+# Function to load data from URL
+@st.cache
+def load_data(url):
+    return pd.read_csv(url)
 
 # Function for payment analysis
 def payment_analysis(order_payments_data):
@@ -110,7 +118,7 @@ def order_delivery_analysis(orders_data):
 
     # Table for Delivery Time Intervals Distribution Explanation
     st.subheader('Explanation - Delivery Time Intervals Distribution')
-    delivery_intervals_str = [f"{float(interval)} - {float(bins[i+1])}" for i, interval in enumerate(bins[:-1])]
+    delivery_intervals_str = [f"{int(interval.left)} - {int(interval.right)}" for interval in pd.cut(orders_data['delivery_interval'], bins=delivery_intervals)]
     delivery_intervals_explanation_df = pd.DataFrame({
         'Interval': delivery_intervals_str,
         'Frequency': hist
@@ -124,14 +132,11 @@ def product_analysis(products_data):
 
 # Load data based on analysis choice
 if analysis_choice == "Payment Analysis":
-    order_payments_data = load_data("https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/order_payments_dataset.csv")
-    if order_payments_data is not None:
-        payment_analysis(order_payments_data)
+    order_payments_data = load_data(order_payments_file_path)
+    payment_analysis(order_payments_data)
 elif analysis_choice == "Order Delivery Analysis":
-    orders_data = load_data("https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/orders_dataset.csv")
-    if orders_data is not None:
-        order_delivery_analysis(orders_data)
+    orders_data = load_data(orders_file_path)
+    order_delivery_analysis(orders_data)
 elif analysis_choice == "Product Analysis":
-    products_data = load_data("https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/products_dataset.csv")
-    if products_data is not None:
-        product_analysis(products_data)
+    products_data = load_data(products_file_path)
+    product_analysis(products_data)
