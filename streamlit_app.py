@@ -1,17 +1,20 @@
 import streamlit as st
 import pandas as pd
+
+import streamlit as st
+import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
 
-# Read the data
-products_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/products_dataset.csv"
-customers_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/customers_dataset.csv"
-order_items_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/order_items_dataset.csv"
-order_payments_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/order_payments_dataset.csv"
-order_reviews_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/order_reviews_dataset.csv"
-orders_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/orders_dataset.csv"
-product_category_translation_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/product_category_name_translation.csv"
-sellers_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/sellers_dataset.csv"
+# Function to load data from URL
+def load_data(url):
+    try:
+        return pd.read_csv(url)
+    except Exception as e:
+        st.error(f"Error loading data from {url}: {str(e)}")
 
 # Define Streamlit app title
 st.title('E-Commerce Data Analysis')
@@ -19,13 +22,9 @@ st.title('E-Commerce Data Analysis')
 # Sidebar menu for selecting analysis
 analysis_choice = st.sidebar.selectbox(
     "Select Analysis",
-    ["Payment Analysis", "Order Delivery Analysis", "Product Analysis"]
+    ["Payment Analysis", "Order Delivery Analysis", "Product Analysis","anggota kelompok plotyly"]
 )
 
-# Function to load data from URL
-@st.cache
-def load_data(url):
-    return pd.read_csv(url)
 
 # Function for payment analysis
 def payment_analysis(order_payments_data):
@@ -118,7 +117,7 @@ def order_delivery_analysis(orders_data):
 
     # Table for Delivery Time Intervals Distribution Explanation
     st.subheader('Explanation - Delivery Time Intervals Distribution')
-    delivery_intervals_str = [f"{int(interval.left)} - {int(interval.right)}" for interval in pd.cut(orders_data['delivery_interval'], bins=delivery_intervals)]
+    delivery_intervals_str = [f"{float(interval)} - {float(bins[i+1])}" for i, interval in enumerate(bins[:-1])]
     delivery_intervals_explanation_df = pd.DataFrame({
         'Interval': delivery_intervals_str,
         'Frequency': hist
@@ -132,11 +131,103 @@ def product_analysis(products_data):
 
 # Load data based on analysis choice
 if analysis_choice == "Payment Analysis":
-    order_payments_data = load_data(order_payments_file_path)
-    payment_analysis(order_payments_data)
+    order_payments_data = load_data("https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/order_payments_dataset.csv")
+    if order_payments_data is not None:
+        payment_analysis(order_payments_data)
 elif analysis_choice == "Order Delivery Analysis":
-    orders_data = load_data(orders_file_path)
-    order_delivery_analysis(orders_data)
+    orders_data = load_data("https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/orders_dataset.csv")
+    if orders_data is not None:
+        order_delivery_analysis(orders_data)
 elif analysis_choice == "Product Analysis":
-    products_data = load_data(products_file_path)
-    product_analysis(products_data)
+    products_data = load_data("https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/products_dataset.csv")
+    if products_data is not None:
+        product_analysis(products_data)
+
+
+
+
+def product_analysis(products_data):
+    st.header('Product Analysis')
+
+    # Drop rows with missing values for simplicity
+    products_data.dropna(inplace=True)
+
+    # Select relevant features for clustering
+    features = products_data[['product_length_cm', 'product_height_cm', 'product_width_cm']]
+
+    # Standardize the features
+    scaler = StandardScaler()
+    scaled_features = scaler.fit_transform(features)
+
+    # Apply KMeans clustering
+    kmeans = KMeans(n_clusters=3, random_state=42)
+    products_data['cluster'] = kmeans.fit_predict(scaled_features)
+
+    # Display cluster distribution
+    st.subheader('Cluster Distribution')
+    st.write(products_data['cluster'].value_counts())
+
+    # Optional: Visualize cluster centroids
+    centroids = scaler.inverse_transform(kmeans.cluster_centers_)
+    centroids_df = pd.DataFrame(centroids, columns=features.columns)
+    st.subheader('Cluster Centroids')
+    st.write(centroids_df)
+
+#-----------------------------
+   
+
+# Function to load data
+
+
+# Load the product data
+products_file_path = "https://raw.githubusercontent.com/Maenzzz/Tugas_Besar_Sains_data/main/products_dataset.csv"
+products_data = load_data(products_file_path)
+
+# Select relevant features for clustering
+features = products_data[['product_name_lenght', 'product_description_lenght', 'product_photos_qty', 
+                          'product_weight_g', 'product_length_cm', 'product_height_cm', 'product_width_cm']]
+
+# Impute missing values with the mean of each feature
+imputer = SimpleImputer(strategy='mean')
+features_imputed = imputer.fit_transform(features)
+
+# Data Preprocessing: Standardize the features
+scaler = StandardScaler()
+features_scaled = scaler.fit_transform(features_imputed)
+
+# Perform KMeans clustering
+kmeans = KMeans(n_clusters=3, random_state=42)
+kmeans.fit(features_scaled)
+
+# Add cluster labels to the original data
+products_data['Cluster'] = kmeans.labels_
+st.title('anggota kelompok plotyly')
+# Data
+datax = {
+    "Nama Topik": ["Payment Analysis", "Payment Analysis", "Payment Analysis", 
+                   "Order Delivery Analysis", "Order Delivery Analysis", "Product Analysis"
+                  ],
+    "Nama Bagian": ["Payment Type Distribution", "Payment Installments Distribution", "Payment Value Distribution",
+                    "Order Purchase Timestamps Distribution", "Delivery Time Intervals Distribution", "Clustered Products"
+                    ],
+    "Nama Orang": ["Frederick Cornelius Nathaniel", "Nuri Hanang Prasetyo", "Alfin Achmad Zaidan",
+                   "Zharfan Asshaukanie Santoso", "Fayadh Muhammad", "Yusuf Simangunsong",
+                    ],
+    "NIM": ["10122084", "10122091", "10122100", "10122086", "10122090", "10122082",
+            ]
+}
+
+# Create DataFrame
+df = pd.DataFrame(datax)
+
+# Display table
+st.write(df)
+# Display the clustered products
+st.subheader('Clustered Products:')
+st.write(products_data[['product_id', 'product_category_name', 'Cluster']].head(50  ))
+st.write("1. Load Data: Data produk dimuat menggunakan fungsi load_data.")
+st.write("2. Select Relevant Features: Memilih fitur-fitur yang relevan untuk dilakukan clustering, seperti panjang, lebar, dan tinggi produk.")
+st.write("3. Data Preprocessing: Fitur-fitur yang telah dipilih kemudian diimputasi dengan mengisi nilai-nilai yang hilang menggunakan mean dari masing-masing fitur. Setelah itu, fitur-fitur tersebut diskalakan menggunakan StandardScaler dari sklearn.preprocessing.")
+st.write("4. KMeans Clustering: Menerapkan algoritma KMeans untuk melakukan clustering pada data yang telah dipreprocessing, dengan menggunakan jumlah cluster sebanyak 3 dan random_state=42 untuk hasil yang konsisten.")
+st.write("5. Menambahkan Label Cluster ke Data Asli: Hasil clustering (label cluster) kemudian ditambahkan ke data produk asli.")
+
